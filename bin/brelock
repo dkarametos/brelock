@@ -1,0 +1,103 @@
+#!/usr/bin/env ruby
+require 'gli'
+require 'brelock'
+
+include GLI::App
+
+program_desc 'yet another ssh utility...'
+version Brelock::VERSION
+
+#desc 'Describe some switch here'
+#switch [:vs,:switch]
+
+desc 'custom hosts.yml file'
+default_value '~/.brelock/hosts.yml'
+arg_name 'hosts.yml'
+flag [:f,'hosts-file']
+
+
+
+
+desc 'Describe hosts here'
+arg_name 'Describe arguments to hosts here'
+command :hosts do |c|
+  #c.desc 'Describe a switch to hosts'
+  #c.switch :s
+  #c.desc 'Describe a flag to hosts'
+  #c.default_value 'default'
+  #c.flag :f
+
+  c.desc 'Describe hosts list here'
+  c.arg_name 'Describe arguments to hosts list here'
+  c.command :list do |sc|
+    sc.action do |global_options,options,args|
+      ap $config.hosts
+      puts "hosts command ran"
+    end
+  end
+
+
+  c.desc 'Describe hosts add here'
+  c.arg_name 'Describe arguments to hosts add here'
+  c.command :add do |sc|
+    sc.action do |global_options,options,args|
+      puts "todo hosts add"
+      puts "G:#{global_options}"
+      puts "O:#{options}"
+      puts "A:#{args}"
+    end
+  end
+
+
+  c.desc 'Describe hosts rem here'
+  c.arg_name 'Describe arguments to hosts rem here'
+  c.command :rem do |sc|
+    sc.action do |global_options,options,args|
+      puts "todo hosts rem"
+    end
+  end
+end
+
+
+
+
+desc 'Describe keys here'
+arg_name 'Describe arguments to keys here'
+command :keys do |c|
+  c.action do |global_options,options,args|
+
+    pool = Brelock::Session.pool(size: 5)
+    puts "here I am "
+
+    #TODO more dynamic
+    futures =  $config.hosts.map do |h|
+      h.users.map do |u|
+        pool.future(:cat_file, h.hostname, u)
+      end
+    end
+
+    keys = futures.flatten.map(&:value)
+    ap keys if keys
+
+    puts "keys command ran"
+  end
+end
+
+
+
+
+pre do |global,command,options,args|
+  path    = File.expand_path(global[:f])
+  reader  = ConfigToolkit::YAMLReader.new(path)
+  $config = Brelock::HostsConfig.load(reader)
+  true
+end
+
+post do |global,command,options,args|
+end
+
+on_error do |exception|
+  true
+end
+
+exit run(ARGV)
