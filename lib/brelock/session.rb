@@ -7,7 +7,13 @@ module Brelock
       Net::SSH.start(host, user) do |ssh|
         ssh.sftp.connect do |sftp|
           sftp.file.open(file, "r") do |f|
-            contents <<  f.gets
+            while(!f.eof?)
+              tmp = f.gets
+              next if tmp.class != String
+              tmp.strip!
+              next if (tmp.empty? or tmp =~ /^#.*$/)
+              contents <<  tmp
+            end
           end
         end
       end
